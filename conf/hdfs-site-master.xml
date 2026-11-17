@@ -1,0 +1,41 @@
+<configuration>
+  <property>
+    <name>dfs.replication</name>
+    <value>2</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>file:///data/hdfs/namenode</value>
+</property>
+
+<property>
+    <name>dfs.datanode.data.dir</name>
+    <value>file:///data/hdfs/datanode</value>
+</property>
+
+  <property>
+    <name>dfs.namenode.rpc-address</name>
+    <value>100.64.134.23:9000</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.hostname</name>
+    <value>100.64.134.23</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.rpc-bind-host</name>
+    <value>0.0.0.0</value>
+  </property>
+
+  <property>
+    <name>dfs.client.use.datanode.hostname</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.use.datanode.hostname</name>
+    <value>true</value>
+  </property>
+</configuration>

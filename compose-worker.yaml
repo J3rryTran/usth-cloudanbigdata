@@ -1,0 +1,13 @@
+services:
+  datanode:
+    build: .
+    hostname: datanode2
+    command: ["hdfs", "datanode"]
+    ports:
+      - "9866:9866"
+      - "9864:9864"
+    volumes:
+      - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./conf/hdfs-site-worker.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - /mnt/e/data-hdfs/datanode:/data/hdfs/datanode # path/to/datanode
+    restart: unless-stopped

@@ -1,0 +1,6 @@
+<configuration>
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://100.64.134.23:9000</value>
+  </property>
+</configuration>
