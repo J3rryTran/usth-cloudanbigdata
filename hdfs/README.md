@@ -165,6 +165,16 @@ sudo tcpdump -ni tailscale0 'tcp port 9000 or icmp'
 
 Useful references: [Tailscale for Linux](https://tailscale.com/docs/install/linux), [Tailscale CLI](https://tailscale.com/docs/reference/tailscale-cli), [Tailscale on WSL2](https://tailscale.com/docs/install/windows/wsl2), [WSL systemd](https://learn.microsoft.com/windows/wsl/systemd).
 
+Generate file .xml first
+run
+```bash
+bash generate-conf.sh
+```
+
+And then create .env
+```
+TS_IP=<tailscale_ip>
+```
 ## Start
 
 **Master node:**
