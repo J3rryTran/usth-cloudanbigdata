@@ -1,1 +1,3 @@
-lib/*
+hdfs/lib/*
+spark/lib/*
+*/.env

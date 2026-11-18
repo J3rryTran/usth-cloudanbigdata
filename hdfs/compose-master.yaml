@@ -1,6 +1,10 @@
 services:
   namenode:
     build: .
+
+    image: usth-cloudandbigdata:namenode-hdfs-hadoop-3.5.0
+    container_name: namenode-master
+
     hostname: namenode
     command: ["hdfs", "namenode"]
     ports:
@@ -9,12 +13,16 @@ services:
     volumes:
       - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
       - ./conf/hdfs-site-master.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
-      - /mnt/e/data-hdfs/namenode:/data/hdfs/namenode
+      - /mnt/e/data-hdfs/namenode:/data/hdfs/namenode # path/to/datanode
     restart: unless-stopped
 
   datanode:
     build: .
-    hostname: datanode1
+
+    image: usth-cloudandbigdata:datanode-hdfs-hadoop-3.5.0
+    container_name: datanode-master
+
+    hostname: datanode0
     command: ["hdfs", "datanode"]
     ports:
       - "9866:9866"
@@ -22,5 +30,5 @@ services:
     volumes:
       - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
       - ./conf/hdfs-site-master.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
-      - /mnt/e/data-hdfs/datanode:/data/hdfs/datanode
+      - /mnt/e/data-hdfs/datanode:/data/hdfs/datanode # path/to/datanode
     restart: unless-stopped

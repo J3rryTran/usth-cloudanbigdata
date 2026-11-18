@@ -13,6 +13,8 @@ RUN apt update && \
         liblz4-1 \
     && rm -rf /var/lib/apt/lists/*
 
+# https://archive.apache.org/dist/hadoop/common/stable/hadoop-3.5.0.tar.gz
+
 COPY lib/hadoop-3.5.0 /opt/hadoop
 
 ENV JAVA_HOME=/opt/java/openjdk

@@ -1,7 +1,11 @@
 services:
   datanode:
     build: .
-    hostname: datanode2
+    
+    image: usth-cloudandbigdata:datanode-hdfs-hadoop-3.5.0
+    container_name: datanode-master
+
+    hostname: datanode1
     command: ["hdfs", "datanode"]
     ports:
       - "9866:9866"
