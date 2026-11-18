@@ -23,7 +23,7 @@ services:
 
     volumes:
       - ./conf/core-site.xml:/opt/hadoop-conf/core-site.xml:ro
-      - ./conf/hdfs-site-master.xml:/opt/hadoop-conf/hdfs-site.xml:ro
+      - ./conf/hdfs-site.xml:/opt/hadoop-conf/hdfs-site.xml:ro
       - ./spark/conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
 
   spark-worker-1:
@@ -58,8 +58,8 @@ services:
       - spark://${MASTER_TS_IP:?MASTER_TS_IP is required}:7077
 
     volumes:
-      - ./conf/core-site.xml:/opt/hadoop-conf/core-site.xml:ro
-      - ./conf/hdfs-site-master.xml:/opt/hadoop-conf/hdfs-site.xml:ro
+      - ./conf/core-site.xml:/opt/hadoop/core-site.xml:ro
+      - ./conf/hdfs-site-master.xml:/opt/hadoop/hdfs-site.xml:ro
       - ./spark/conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
       - /mnt/e/data-spark:/data/spark
 
