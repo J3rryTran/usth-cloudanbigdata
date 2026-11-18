@@ -27,7 +27,7 @@ services:
       - ./spark/conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
 
   spark-worker-1:
-    image: usth-spark:4.0.1
+    image: usth-cloudandbigdata:spark-4.0.1_v0
     container_name: spark-worker-1
 
     network_mode: host

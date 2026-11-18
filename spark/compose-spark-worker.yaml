@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: spark/Dockerfile
 
-    image: usth-spark:4.0.1
+    image: usth-cloudandbigdata:spark-4.0.1_v0
     container_name: spark-worker-2
 
     network_mode: host
