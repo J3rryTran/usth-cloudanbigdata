@@ -1,0 +1,38 @@
+services:
+  spark-worker-2:
+    build:
+      context: .
+      dockerfile: spark/Dockerfile
+
+    image: usth-spark:4.0.1
+    container_name: spark-worker-2
+
+    network_mode: host
+    restart: unless-stopped
+
+    environment:
+      JAVA_HOME: /opt/java/openjdk
+      SPARK_LOCAL_DIRS: /data/spark/local
+
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - --host
+      - ${NODE_TS_IP:?NODE_TS_IP is required}
+      - --port
+      - "7078"
+      - --webui-port
+      - "8081"
+      - --cores
+      - "2"
+      - --memory
+      - 3g
+      - --work-dir
+      - /data/spark/work
+      - spark://${MASTER_TS_IP:?MASTER_TS_IP is required}:7077
+
+    volumes:
+      - ./conf/core-site.xml:/opt/hadoop-conf/core-site.xml:ro
+      - ./conf/hdfs-site-worker.xml:/opt/hadoop-conf/hdfs-site.xml:ro
+      - ./spark/conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - /mnt/e/data-spark:/data/spark
