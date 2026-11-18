@@ -15,7 +15,7 @@ services:
       - /opt/spark/bin/spark-class
       - org.apache.spark.deploy.master.Master
       - --host
-      - ${MASTER_TS_IP:?MASTER_TS_IP is required}
+      - ${TS_IP:?TS_IP is required}
       - --port
       - "7077"
       - --webui-port
@@ -44,7 +44,7 @@ services:
       - /opt/spark/bin/spark-class
       - org.apache.spark.deploy.worker.Worker
       - --host
-      - ${NODE_TS_IP:?NODE_TS_IP is required}
+      - ${TS_IP:?TS_IP is required}
       - --port
       - "7078"
       - --webui-port
@@ -55,7 +55,7 @@ services:
       - 3g
       - --work-dir
       - /data/spark/work
-      - spark://${MASTER_TS_IP:?MASTER_TS_IP is required}:7077
+      - spark://${TS_IP:?TS_IP is required}:7077
 
     volumes:
       - ./conf/core-site.xml:/opt/hadoop/core-site.xml:ro
