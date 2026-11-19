@@ -1,0 +1,47 @@
+name: usth-hdfs-local
+
+x-hadoop: &hadoop
+  image: usth-hdfs-local:hadoop-3.5.0
+  build:
+    dockerfile_inline: |
+      FROM apache/hadoop:3.5.0
+      RUN mkdir -p /opt/hadoop/data/dfs
+  network_mode: host
+  restart: unless-stopped
+
+x-hadoop-environment: &hadoop-environment
+  CORE-SITE.XML_fs.defaultFS: hdfs://127.0.0.1:9000
+  HDFS-SITE.XML_dfs.namenode.rpc-address: 127.0.0.1:9000
+  HDFS-SITE.XML_dfs.replication: "1"
+
+services:
+  namenode:
+    <<: *hadoop
+    command: ["hdfs", "namenode"]
+    environment:
+      <<: *hadoop-environment
+      ENSURE_NAMENODE_DIR: /opt/hadoop/data/dfs/name
+      HDFS-SITE.XML_dfs.namenode.name.dir: file:///opt/hadoop/data/dfs/name
+      HDFS-SITE.XML_dfs.namenode.http-address: 127.0.0.1:9870
+    volumes:
+      - namenode-data:/opt/hadoop/data
+
+  datanode:
+    <<: *hadoop
+    command: ["hdfs", "datanode"]
+    depends_on:
+      - namenode
+    environment:
+      <<: *hadoop-environment
+      WAITFOR: 127.0.0.1:9000
+      HDFS-SITE.XML_dfs.datanode.data.dir: file:///opt/hadoop/data/dfs/data
+      HDFS-SITE.XML_dfs.datanode.hostname: 127.0.0.1
+      HDFS-SITE.XML_dfs.datanode.address: 127.0.0.1:9866
+      HDFS-SITE.XML_dfs.datanode.http.address: 127.0.0.1:9864
+      HDFS-SITE.XML_dfs.datanode.ipc.address: 127.0.0.1:9867
+    volumes:
+      - datanode-data:/opt/hadoop/data
+
+volumes:
+  namenode-data:
+  datanode-data:
