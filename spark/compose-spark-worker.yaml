@@ -1,38 +1,49 @@
+name: usth-spark-worker
+
 services:
-  spark-worker-2:
+  spark-worker:
     build:
       context: .
-      dockerfile: spark/Dockerfile
-
-    image: usth-cloudandbigdata:spark-4.0.1_v0
-    container_name: spark-worker-2
-
+      dockerfile: dockerfile
+    image: usth-cloudandbigdata:spark-4.2.1
     network_mode: host
+    cgroup_parent: ${USTH_CGROUP_PARENT:-}
     restart: unless-stopped
-
+    mem_limit: 1536m
+    memswap_limit: 1536m
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777,exec
+      - /data/spark:size=256m,mode=0755
+    logging:
+      driver: local
+      options:
+        max-size: "5m"
+        max-file: "2"
     environment:
-      JAVA_HOME: /opt/java/openjdk
+      JAVA_TOOL_OPTIONS: -XX:ActiveProcessorCount=2
+      SPARK_DAEMON_MEMORY: 256m
+      SPARK_LOCAL_IP: ${NODE_TS_IP:?Set NODE_TS_IP}
+      SPARK_LOCAL_HOSTNAME: ${NODE_TS_IP:?Set NODE_TS_IP}
       SPARK_LOCAL_DIRS: /data/spark/local
-
+      SPARK_WORKER_OPTS: -Dspark.worker.cleanup.enabled=true
     command:
       - /opt/spark/bin/spark-class
       - org.apache.spark.deploy.worker.Worker
       - --host
-      - ${TS_IP:?TS_IP is required}
+      - ${NODE_TS_IP:?Set NODE_TS_IP}
       - --port
       - "7078"
       - --webui-port
       - "8081"
       - --cores
-      - "2"
+      - "1"
       - --memory
-      - 3g
+      - 512m
       - --work-dir
       - /data/spark/work
-      - spark://${TS_IP:?TS_IP is required}:7077
-
+      - spark://${MASTER_TS_IP:?Set MASTER_TS_IP}:7077
     volumes:
-      - ./conf/core-site.xml:/opt/hadoop/core-site.xml:ro
-      - ./conf/hdfs-site.xml:/opt/hadoop/hdfs-site.xml:ro
-      - ./spark/conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
-      - /mnt/e/data-spark:/data/spark
+      - ../hdfs/conf/core-site.xml:/opt/hadoop-conf/core-site.xml:ro
+      - ../hdfs/conf/hdfs-site.xml:/opt/hadoop-conf/hdfs-site.xml:ro
+      - ./spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro

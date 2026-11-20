@@ -3,16 +3,27 @@ name: usth-hdfs-local
 x-hadoop: &hadoop
   image: usth-hdfs-local:hadoop-3.5.0
   build:
-    dockerfile_inline: |
-      FROM apache/hadoop:3.5.0
-      RUN mkdir -p /opt/hadoop/data/dfs
+    context: .
+    dockerfile: dockerfile
   network_mode: host
+  cgroup_parent: ${USTH_CGROUP_PARENT:-}
   restart: unless-stopped
+  mem_limit: 512m
+  memswap_limit: 512m
+  logging:
+    driver: local
+    options:
+      max-size: "5m"
+      max-file: "2"
 
 x-hadoop-environment: &hadoop-environment
-  CORE-SITE.XML_fs.defaultFS: hdfs://127.0.0.1:9000
-  HDFS-SITE.XML_dfs.namenode.rpc-address: 127.0.0.1:9000
-  HDFS-SITE.XML_dfs.replication: "1"
+  HADOOP_HEAPSIZE_MAX: 256m
+  JAVA_TOOL_OPTIONS: -XX:ActiveProcessorCount=2
+  CORE-SITE.XML_fs.defaultFS: hdfs://${MASTER_TS_IP:-127.0.0.1}:9000
+  HDFS-SITE.XML_dfs.namenode.rpc-address: ${MASTER_TS_IP:-127.0.0.1}:9000
+  HDFS-SITE.XML_dfs.replication: ${HDFS_REPLICATION:-1}
+  HDFS-SITE.XML_dfs.client.use.datanode.hostname: "true"
+  HDFS-SITE.XML_dfs.datanode.use.datanode.hostname: "true"
 
 services:
   namenode:
@@ -22,7 +33,8 @@ services:
       <<: *hadoop-environment
       ENSURE_NAMENODE_DIR: /opt/hadoop/data/dfs/name
       HDFS-SITE.XML_dfs.namenode.name.dir: file:///opt/hadoop/data/dfs/name
-      HDFS-SITE.XML_dfs.namenode.http-address: 127.0.0.1:9870
+      HDFS-SITE.XML_dfs.namenode.http-address: ${MASTER_TS_IP:-127.0.0.1}:9870
+      HDFS-SITE.XML_dfs.namenode.datanode.registration.ip-hostname-check: "false"
     volumes:
       - namenode-data:/opt/hadoop/data
 
@@ -33,12 +45,12 @@ services:
       - namenode
     environment:
       <<: *hadoop-environment
-      WAITFOR: 127.0.0.1:9000
+      WAITFOR: ${MASTER_TS_IP:-127.0.0.1}:9000
       HDFS-SITE.XML_dfs.datanode.data.dir: file:///opt/hadoop/data/dfs/data
-      HDFS-SITE.XML_dfs.datanode.hostname: 127.0.0.1
-      HDFS-SITE.XML_dfs.datanode.address: 127.0.0.1:9866
-      HDFS-SITE.XML_dfs.datanode.http.address: 127.0.0.1:9864
-      HDFS-SITE.XML_dfs.datanode.ipc.address: 127.0.0.1:9867
+      HDFS-SITE.XML_dfs.datanode.hostname: ${MASTER_TS_IP:-127.0.0.1}
+      HDFS-SITE.XML_dfs.datanode.address: ${MASTER_TS_IP:-127.0.0.1}:9866
+      HDFS-SITE.XML_dfs.datanode.http.address: ${MASTER_TS_IP:-127.0.0.1}:9864
+      HDFS-SITE.XML_dfs.datanode.ipc.address: ${MASTER_TS_IP:-127.0.0.1}:9867
     volumes:
       - datanode-data:/opt/hadoop/data
 

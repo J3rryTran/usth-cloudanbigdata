@@ -3,18 +3,22 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-set -a
-source .env
-set +a
+if [[ -f .env ]]; then
+  source .env
+fi
 
-: "${TS_IP:?TS_IP is required}"
+: "${MASTER_TS_IP:?Set MASTER_TS_IP in hdfs/.env}"
+HDFS_REPLICATION=${HDFS_REPLICATION:-2}
+if [[ ! $MASTER_TS_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ || ! $HDFS_REPLICATION =~ ^[1-9][0-9]*$ ]]; then
+  echo "Set MASTER_TS_IP to an IPv4 address and HDFS_REPLICATION to a positive integer." >&2
+  exit 1
+fi
 
-envsubst '${TS_IP}' \
-  < conf/hdfs-site.xml.template \
-  > conf/hdfs-site.xml
+for site in core-site hdfs-site; do
+  xml=$(<"conf/$site.xml.template")
+  xml=${xml//\$\{MASTER_TS_IP\}/$MASTER_TS_IP}
+  xml=${xml//\$\{HDFS_REPLICATION\}/$HDFS_REPLICATION}
+  printf '%s\n' "$xml" > "conf/$site.xml"
+done
 
-envsubst '${TS_IP}' \
-  < conf/core-site.xml.template \
-  > conf/core-site.xml
-
-echo "HDFS configuration generated successfully."
+echo "HDFS client configuration generated successfully."

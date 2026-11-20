@@ -1,0 +1,7 @@
+[Unit]
+Description=USTH Hadoop and Spark containers
+
+[Slice]
+MemoryAccounting=yes
+MemoryMax=2000000000
+MemorySwapMax=0

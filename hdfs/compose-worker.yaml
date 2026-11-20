@@ -1,17 +1,37 @@
+name: usth-hdfs-worker
+
 services:
   datanode:
-    build: .
-    
-    image: usth-cloudandbigdata:datanode-hdfs-hadoop-3.5.0
-    container_name: datanode-master
-
-    hostname: datanode1
-    command: ["hdfs", "datanode"]
-    ports:
-      - "9866:9866"
-      - "9864:9864"
-    volumes:
-      - ./conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
-      - ./conf/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
-      - /mnt/e/data-hdfs/datanode:/data/hdfs/datanode # path/to/datanode
+    image: usth-hdfs-local:hadoop-3.5.0
+    build:
+      context: .
+      dockerfile: dockerfile
+    network_mode: host
+    cgroup_parent: ${USTH_CGROUP_PARENT:-}
     restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 512m
+    logging:
+      driver: local
+      options:
+        max-size: "5m"
+        max-file: "2"
+    command: ["hdfs", "datanode"]
+    environment:
+      HADOOP_HEAPSIZE_MAX: 256m
+      JAVA_TOOL_OPTIONS: -XX:ActiveProcessorCount=2
+      WAITFOR: ${MASTER_TS_IP:?Set MASTER_TS_IP}:9000
+      CORE-SITE.XML_fs.defaultFS: hdfs://${MASTER_TS_IP:?Set MASTER_TS_IP}:9000
+      HDFS-SITE.XML_dfs.replication: ${HDFS_REPLICATION:-2}
+      HDFS-SITE.XML_dfs.client.use.datanode.hostname: "true"
+      HDFS-SITE.XML_dfs.datanode.use.datanode.hostname: "true"
+      HDFS-SITE.XML_dfs.datanode.data.dir: file:///opt/hadoop/data/dfs/data
+      HDFS-SITE.XML_dfs.datanode.hostname: ${NODE_TS_IP:?Set NODE_TS_IP}
+      HDFS-SITE.XML_dfs.datanode.address: ${NODE_TS_IP:?Set NODE_TS_IP}:9866
+      HDFS-SITE.XML_dfs.datanode.http.address: ${NODE_TS_IP:?Set NODE_TS_IP}:9864
+      HDFS-SITE.XML_dfs.datanode.ipc.address: ${NODE_TS_IP:?Set NODE_TS_IP}:9867
+    volumes:
+      - datanode-data:/opt/hadoop/data
+
+volumes:
+  datanode-data:

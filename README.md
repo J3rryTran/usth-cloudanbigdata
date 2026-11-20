@@ -1,28 +1,14 @@
-## Configuration
+## Cluster setup
 
-Configure the NameNode address and DataNode advertised address in the Hadoop configuration files. Set the storage bind-mount path in the Compose files for each host.
+Join the master and workers to the same tailnet. Follow the [HDFS setup](hdfs/README.md) for the NameNode, DataNodes, and storage quota, then the [Spark setup](spark/README.md) for distributed jobs and container memory limits.
 
-```bash
-# Check the local Tailscale address (if using Tailscale)
-tailscale ip -4
-
-# Create the DataNode storage directory
-mkdir -p /path/to/hdfs/datanode
-
-mkdir -p /path/to/hdfs/namenode
-```
+The [master node setup report](MASTER_SETUP_REPORT.md) records the deployed configuration, connectivity diagnosis, and verification results.
 
 ## Tailscale on WSL2: install and fix connectivity
 
-Use this section **inside the Ubuntu/Debian WSL2 distro that will join the tailnet**. It covers Tailscale itself; the HDFS setup below stays unchanged.
+Use this section **inside the Ubuntu/Debian WSL2 distro that will join the tailnet**.
 
 > **Important for WSL2:** Do not run independent Tailscale instances on both the Windows host and its WSL2 distro as a default setup. They can interfere with networking. If multiple WSL distros share a network namespace, avoid running multiple `tailscaled` instances that each try to create `tailscale0`. Choose the location where Tailscale should run before configuring the HDFS endpoint. Tailscale's [WSL2 guide](https://tailscale.com/docs/install/windows/wsl2) discusses this limitation.
-
-Open add port hdfs with wsl and window
-
-```bash
-New-NetFirewallRule -DisplayName "Allow Port 9000" -Direction Inbound -LocalPort 9000 -Protocol TCP -Action Allow
-```
 
 ### 1. Enable systemd in WSL2 (if needed)
 
@@ -167,6 +153,6 @@ sudo tcpdump -ni tailscale0 'tcp port 9000 or icmp'
 
 **Interpretation:** no SYN seen means investigate the tailnet policy/routing before WSL; SYN seen with no reply means inspect WSL firewall or Docker forwarding; successful TCP only proves the port is reachable, not that HDFS DataNodes registered or file reads/writes work.
 
-> **Docker/HDFS note:** `0.0.0.0:9000` in `docker compose ps` means Docker publishes the port on all host IPv4 interfaces. It does **not** mean the Tailscale address is absent. Verify that NameNode RPC works internally before changing Compose networking. Never reformat an existing NameNode to fix a connectivity issue.
+The multi-host Compose files use host networking. On the master, `ss -lnt '( sport = :9000 or sport = :9870 )'` should show the master's Tailscale IP. Verify NameNode RPC with `hdfs dfsadmin -report` before changing firewalls or Tailscale settings. Preserve the NameNode volume when switching from loopback to Tailscale.
 
 Useful references: [Tailscale for Linux](https://tailscale.com/docs/install/linux), [Tailscale CLI](https://tailscale.com/docs/reference/tailscale-cli), [Tailscale on WSL2](https://tailscale.com/docs/install/windows/wsl2), [WSL systemd](https://learn.microsoft.com/windows/wsl/systemd).

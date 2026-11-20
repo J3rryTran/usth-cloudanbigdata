@@ -1,54 +1,54 @@
-# Build Spark Docker Image
+# Spark over Tailscale
 
-Build the Spark image locally for the USTH Spark Standalone cluster. A Docker Hub login is **not required**.
+Start HDFS first and generate its client configuration on each machine using the [HDFS setup](../hdfs/README.md). The Spark Compose files read the same `hdfs/.env` when invoked with `--env-file`. Run the following commands from the repository root.
 
-## 1. Build the image on the Master
+The Spark image build expects the Spark 4.2.1 Hadoop 3 distribution extracted to `spark/lib/spark-4.2.1-bin-hadoop3/`. Prepare that directory on each host that builds the image, or transfer the built `usth-cloudandbigdata:spark-4.2.1` image and use `--no-build`.
 
-Change directory to spark/ then build images
-
-```bash
-sudo docker build --network=host -t usth-cloudandbigdata:spark-4.0.1_v0 -f Dockerfile .
-```
-
-## 2. Verify the build
+## Start the master
 
 ```bash
-sudo docker run --rm --entrypoint /opt/spark/bin/spark-submit usth-cloudandbigdata:spark-4.0.1_v0 --version
+docker compose --env-file hdfs/.env -f spark/compose-spark-master.yaml up -d --build
+docker compose --env-file hdfs/.env -f spark/compose-spark-master.yaml ps
 ```
 
-## 3. Start Spark on the Master
+The Spark master URL is `spark://100.116.4.96:7077`. The master UI is at `http://100.116.4.96:8082`.
 
-Build the image **before** starting Compose. If `spark-worker-1` declares only `usth-cloudandbigdata:spark-4.0.1_v0`, Compose may otherwise attempt to pull that tag from Docker Hub.
+## Start each remote worker
 
 ```bash
-sudo docker compose -f compose-spark-master.yaml up -d --no-build
-sudo docker compose -f compose-spark-master.yaml ps
-sudo docker compose -f compose-spark-master.yaml logs --tail=50 spark-master spark-worker-1
+docker compose --env-file hdfs/.env -f spark/compose-spark-worker.yaml up -d --build
+docker compose --env-file hdfs/.env -f spark/compose-spark-worker.yaml logs --tail=30 spark-worker
 ```
 
-Check the Spark Master UI at `http://<MASTER_TAILSCALE_IP>:8080` (when networking permits).
+Confirm both workers appear in the master UI. Each worker binds to its `NODE_TS_IP` and registers with Spark at `MASTER_TS_IP`. For jobs submitted from the master, workers must be able to reach the driver on TCP `39000` and `39001`. Spark executors use TCP `39002` for block transfers.
 
-## 4. Build and start Spark on the second machine (option)
+## Run the smoke test
 
-The second machine has its own Docker image store, so build the same image there unless you have transferred or published it.
+On the master, create the HDFS directories once and grant the container's `root` user access. Use the dedicated test directory because the sample job overwrites `/spark-test/output`.
 
 ```bash
-cd /path/to/CloudandBigdata/spark
-sudo docker build --network=host -t usth-cloudandbigdata:spark-4.0.1_v0 -f Dockerfile .
-sudo docker compose -f compose-spark-worker.yaml up -d --no-build
-sudo docker compose -f compose-spark-worker.yaml ps
+docker compose -f hdfs/compose-master.yaml exec -T namenode hdfs dfs -mkdir -p /spark-events /spark-test
+docker compose -f hdfs/compose-master.yaml exec -T namenode hdfs dfs -chown root /spark-events /spark-test
+docker compose --env-file hdfs/.env -f spark/compose-spark-master.yaml run --rm spark-client \
+  spark-submit --master spark://100.116.4.96:7077 /opt/spark/jobs/test.py
 ```
 
-Configure `TS_IP` in each machine's `.env` before starting Compose.
+## Resource limits
 
-## Troubleshooting: `pull access denied for usth-spark`
+| Host | Container limits | Sum of container limits |
+| --- | --- | --- |
+| Master | 512 MiB NameNode, 512 MiB DataNode, 384 MiB Spark master | 1,408 MiB |
+| Master running one Spark client | Same services plus a 640 MiB Spark client | 2,048 MiB |
+| Each worker | 512 MiB DataNode and 1,536 MiB Spark worker | 2,048 MiB |
 
-This usually means `usth-cloudandbigdata:spark-4.0.1_v0` is missing locally while a Compose service only specifies `image:`.
+Docker enforces these limits with swap disabled. Spark reserves one core and a 512 MiB executor heap per worker. Spark scratch and work files use bounded temporary filesystems, and Docker rotates service logs. Large jobs can exhaust these limits even if there is room in HDFS.
+
+For a shared cap of exactly 2 GB per host, install the resource slice on hosts using cgroup v2 with Docker's `systemd` cgroup driver. Both HDFS and Spark use the same slice, including one-off `spark-client` containers.
 
 ```bash
-sudo docker image inspect usth-cloudandbigdata:spark-4.0.1_v0
+sudo install -m 644 usthcluster.slice /etc/systemd/system/usthcluster.slice
+sudo systemctl daemon-reload
+sudo systemctl start usthcluster.slice
 ```
 
-If it is missing, run the build command in step 1 (on the affected machine) and retry `up -d --no-build`. Ensure the `image:` tag in the Compose YAML exactly matches `usth-cloudandbigdata:spark-4.0.1_v0`.
-
-**Note:** These steps build and start Spark only; the existing HDFS cluster must already be running and reachable. Do not format HDFS when building Spark.
+Add `USTH_CGROUP_PARENT=usthcluster.slice` to `hdfs/.env` and run the Compose startup commands again to place the containers in the slice. Check the shared cap with `systemctl show usthcluster.slice -p MemoryMax -p MemorySwapMax`.
